@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<script>
+var canvas1;
+var ctx;
+
+var timeLast = new Date().getTime();
+
+var jointList = [];
+
+function joint_add(xx, yy){
+	jointList.push({x:xx, y:yy});
+}
+
+function joint_draw(){
+	
+	for(var i=0; i<jointList.length; i++){
+		ctx.beginPath();
+		ctx.arc(	jointList[i].x, 
+					jointList[i].y, 
+					2, //radius
+					0, 
+					2 * Math.PI);
+		ctx.stroke();
+	}
+	
+	for(var i=0; i<(jointList.length-1); i++){
+		ctx.beginPath();
+		ctx.moveTo(jointList[i].x, jointList[i].y);
+		ctx.lineTo(jointList[i+1].x, jointList[i+1].y);
+		ctx.stroke();
+	}
+}
+
+var ox = 500;
+var oy = 250;
+
+var jx = ox;
+var jy = oy;
+var jw = 50;
+for(var i=0; i<5; i++){
+	joint_add(jx, jy);
+	jx += jw;
+}
+
+var mx = 0;
+var my = 0;
+
+function fabrik_end_to_begin(xx, yy){
+	var ji = jointList.length-1;
+	
+	jointList[ji].x = xx;
+	jointList[ji].y = yy;
+	
+	ji--;
+	while( ji>=0 ){
+		var dx = jointList[ji+1].x - jointList[ji].x;
+		var dy = jointList[ji+1].y - jointList[ji].y;
+		var d = Math.sqrt(dx*dx + dy*dy);
+		var nx = dx/d;
+		var ny = dy/d;
+		
+		jointList[ji].x = jointList[ji+1].x - nx*jw;
+		jointList[ji].y = jointList[ji+1].y - ny*jw;
+		
+		ji--;
+	}
+}
+
+function fabrik_begin_to_end(){
+	var ji = 0;
+	var fx = ox;
+	var fy = oy;
+	while( ji<(jointList.length-1) ){
+		var dx = jointList[ji+1].x - jointList[ji].x;
+		var dy = jointList[ji+1].y - jointList[ji].y;
+		var d = Math.sqrt(dx*dx + dy*dy);
+		var nx = dx/d;
+		var ny = dy/d;
+		
+		jointList[ji].x = fx;
+		jointList[ji].y = fy;
+		
+		jointList[ji+1].x = fx + nx*jw;
+		jointList[ji+1].y = fy + ny*jw;
+		
+		fx = jointList[ji+1].x;
+		fy = jointList[ji+1].y;
+		
+		ji++;
+	}
+}
+
+function fabrik_update(xx, yy, t){
+	if ( jointList.length==0 ){
+		return;
+	}
+	
+	for(var i=0; i<t; i++){
+		fabrik_end_to_begin(xx, yy);
+		fabrik_begin_to_end();
+	}
+}
+
+function drawFrame(){
+	var timeNow = new Date().getTime();
+	
+	var timeDiff = timeNow - timeLast;
+	
+	canvas1.width = 1000;
+	canvas1.height = 800;
+	
+	ctx.font = 'italic 15pt Calibri';
+	
+	ctx.clearRect(0,0,canvas1.width, canvas1.height);
+	ctx.strokeStyle = "#FF0000";
+	ctx.beginPath();
+	ctx.moveTo(ox-jw*.5, oy);
+	ctx.lineTo(ox+jw*.5, oy);
+	
+	ctx.moveTo(ox, oy-jw*.5);
+	ctx.lineTo(ox, oy+jw*.5);
+	ctx.stroke();
+		
+	ctx.fillText("FABRIK: A fast, iterative solver for the Inverse Kinematics problem", 5,20);
+	ctx.fillText("CLICK to run once,", 5,45);
+	ctx.fillText("or press SHIFT to run continuous", 5,65);
+	
+	ctx.strokeStyle = "#000000";
+	joint_draw();
+	
+	ctx.strokeStyle = "#0000FF";
+	ctx.beginPath();
+	ctx.moveTo(mx-jw*.5, my);
+	ctx.lineTo(mx+jw*.5, my);
+	
+	ctx.moveTo(mx, my-jw*.5);
+	ctx.lineTo(mx, my+jw*.5);
+	ctx.stroke();
+	
+	//window.requestAnimationFrame(drawFrame);
+}
+	
+window.onload=function(){
+	canvas1 = document.getElementById('canvas1');
+	ctx = canvas1.getContext('2d');
+	
+	canvas1.onmousedown = function(e){
+		mx = e.offsetX;
+		my = e.offsetY;
+		
+		fabrik_update(mx, my, 1);
+		drawFrame();
+	}
+	
+	canvas1.onmousemove = function(e){
+		if (e.shiftKey){
+			mx = e.offsetX;
+			my = e.offsetY;
+			
+			fabrik_update(mx, my, 1);
+			drawFrame();
+		}
+	}
+	
+	drawFrame();
+}
+</script>
+
+</head>
+<body>
+<canvas id='canvas1' style='border: 1px solid #000;'>
+</canvas>
+</body>
+</html>
